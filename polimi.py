@@ -98,16 +98,11 @@ class polimi:
         self.clusters.append(curr_cluster)
 
         def time_distribute(self, source, I):
-            if source is in ["Pu-Be", "PuBe", "Am-Be", "AmBe", "Po-Be", "PoBe"]:
+            if source in ["Pu-Be", "PuBe", "Am-Be", "AmBe", "Po-Be", "PoBe"]:
                 dist = rand
-            elif source is "PuBe":
-                dist = rand
-            elif source is "Cf":
+            elif source in ["Cf", "Cf-252", "252Cf"]:
                 dist = calif
-            elif source is "Cf-252":
-                dist = calif
-            elif source is "252Cf":
-                dist = calif
+
 
             #self.clusters = []
             #for n in self.neutrons:
