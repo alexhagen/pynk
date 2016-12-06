@@ -31,7 +31,10 @@ def read_endf_line(line):
 			pre = string[:place-1];
 			post = string[place:];
 			#calculate the float
-			Edata.append(float(pre)*10.0**float(post));
+			print E
+			E = float(pre)
+			E = E * 10.0**float(post)
+			Edata.append(E);
 	for string in xs:
 		if not string.isspace():
 			#determine positive or negative by the first character
@@ -43,10 +46,12 @@ def read_endf_line(line):
 			if place <= 0:
 				place = string.rfind('+');
 			#slice into pre and post
-			pre = string[:place-1];
-			post = string[place:];
+			pre = string[:place-1]
+			post = string[place:]
 			#calculate the float
-			xsdata.append(float(pre)*10.0**float(post));
+			xs = float(pre)
+			xs = xs * 10.0**float(post)
+			xsdata.append(xs);
 	return (np.array(Edata),np.array(xsdata));
 
 def import_endf(filename):
@@ -54,17 +59,23 @@ def import_endf(filename):
 	#find the line ending with 099999
 	(start_end,) = np.where([line.endswith("099999") for line in data]);
 	#skip the next four lines
-	data = np.array(data[start_end[0]+5:start_end[1]])
-	#read in the lines between this and the next 099999
-	
+	if len(start_end) > 1:
+		data = np.array(data[start_end[0]+5:start_end[1]])
+		#read in the lines between this and the next 099999
+	else:
+		start_at_line_four = True
+
 	E = [0.0];
 	xs = [0.0];
+	counter = 1
 	for line in data:
-		(Edata,xsdata) = read_endf_line(line);
-		for erg in Edata:
-			E.append(erg);
-		for sigma in xsdata:
-			xs.append(sigma);
+		if (start_at_line_four and counter > 3 and not line.endswith("099999")) or (not start_at_line_four):
+			(Edata,xsdata) = read_endf_line(line);
+			for erg in Edata:
+				E.append(erg);
+			for sigma in xsdata:
+				xs.append(sigma);
+		counter = counter + 1
 	E.append(np.max(E)+1.0);
 	xs.append(0.0);
 	E = np.array(E)/1.0E6; # convert to MeV
