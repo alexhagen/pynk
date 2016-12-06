@@ -43,17 +43,23 @@ class talys:
                 with open(self.energyfilename, 'w') as f2:
                     for e in energy:
                         f2.write('%.15f\n' % (e))
-    def run(self):
+    def run(self, datadir=None):
+        if datadir is None:
+            datadir = 'archive/'
         self.out_filename = '%s-%d_%s-%s.out' % \
             (self.Z, self.A, self.projectile, self.ejectile)
-        cmd = 'talys < %s > %s' % (self.filename, self.out_filename)
-        os.system(cmd)
+        if os.path.isfile(datadir + self.out_filename):
+            self.out_filename = datadir + self.out_filename
+        else:
+            cmd = 'talys < %s > %s' % (self.filename, self.out_filename)
+            os.system(cmd)
         return self
 
-    def proc_output(self):
+    def proc_output(self, addtl_rxns=[]):
         self.E = []
         self.sigma = []
         self.nu = []
+        self.rxns = {}
         lines = open(self.out_filename, 'r').readlines()
         for line in lines:
             if 'Q(g,n):' in line:
@@ -73,4 +79,22 @@ class talys:
                 nu = float(arr[2]) * 10.**float(arr[3])
                 self.sigma.extend([sigma])
                 self.nu.extend([nu])
+            for rxn in addtl_rxns:
+                if rxn in line and self.mult_in_line:
+                    arr = re.findall(r"[\-+]?\d*\.\d+|[\-+]?\d+", line)
+                    sigma = float(arr[0]) * 10.**float(arr[1])
+                    if rxn not in self.rxns:
+                        self.rxns[rxn] = [[],[]]
+                    self.rxns[rxn][0].extend([E])
+                    self.rxns[rxn][1].extend([sigma])
+            if 'Multiplicity' in line:
+                self.mult_in_line = True
+            else:
+                self.mult_in_line = False
         return self
+
+    def clean(self):
+        os.system('rm -f %s %s *.tot' % (self.filename, self.energyfilename))
+        os.system('mkdir -p archive')
+        if 'archive' not in self.out_filename:
+            os.system('mv %s archive/' % (self.out_filename))
