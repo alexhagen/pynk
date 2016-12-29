@@ -7,7 +7,7 @@ from os.path import expanduser
 class talys:
     fullnames = {'n': 'neutron', 'g': 'gamma'}
     def __init__(self, A=None, Z=None, projectile='n', ejectile=None,
-                 energy=None):
+                 energy=None, level=None):
         if A is None:
             pass
         else:
@@ -28,6 +28,10 @@ class talys:
             pass
         else:
             self.energy = energy
+        if level is None:
+            pass
+        else:
+            self.level = level
 
         self.filename = '%s-%d_%s-%s.inp' % \
             (self.Z, self.A, self.projectile, self.ejectile)
@@ -36,6 +40,8 @@ class talys:
             f.write('mass %d\n' % (self.A))
             f.write('projectile %s\n' % (self.projectile.lower()))
             f.write('ejectiles %s\n' % (self.ejectile.lower()))
+            if level is not None:
+                f.write('Ltarget %d\n' % (self.level))
             if len(energy) > 1:
                 self.energyfilename = '%s-%d_%s-%s_energies.inp' % \
                     (self.Z, self.A, self.projectile, self.ejectile)
