@@ -99,12 +99,13 @@ class polimi:
             curr_cluster.add_neutron(n)
 
         self.clusters.append(curr_cluster)
+        return self
 
-    def cut(self, E):
+    def cut(self, Emin=0.0, Emax=np.inf):
         for curr_cluster in list(self.clusters):
             for curr_neutron in list(curr_cluster.neutrons):
                 for curr_event in list(curr_neutron.events):
-                    if curr_event.enreco < E:
+                    if curr_event.enreco > Emax or curr_event < Emin:
                         curr_neutron.events.remove(curr_event)
                 if len(curr_neutron.events) == 0:
                     curr_cluster.neutrons.remove(curr_neutron)
@@ -118,6 +119,7 @@ class polimi:
                 for curr_event in curr_neutron.events:
                     self.events.append(curr_event)
                 self.neutrons.append(curr_neutron)
+        return self
 
     def time_distribute(self, source, I):
         if source in ["Pu-Be", "PuBe", "Am-Be", "AmBe", "Po-Be", "PoBe"]:
