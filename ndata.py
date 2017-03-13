@@ -31,7 +31,6 @@ def read_endf_line(line):
 			pre = string[:place-1];
 			post = string[place:];
 			#calculate the float
-			print E
 			E = float(pre)
 			E = E * 10.0**float(post)
 			Edata.append(E);
@@ -62,6 +61,7 @@ def import_endf(filename):
 	if len(start_end) > 1:
 		data = np.array(data[start_end[0]+5:start_end[1]])
 		#read in the lines between this and the next 099999
+		start_at_line_four = False
 	else:
 		start_at_line_four = True
 
