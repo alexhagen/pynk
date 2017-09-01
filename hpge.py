@@ -1,6 +1,6 @@
-from pym import func as pym
+import gamma
 
-class hpge_file(pym.curve):
+class hpge_file(gamma.gspectra):
     ''' a class for reading generalized hpge files
     '''
     def __init__(self, x, y, name):
