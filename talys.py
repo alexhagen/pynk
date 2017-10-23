@@ -5,6 +5,17 @@ import os
 from os.path import expanduser
 
 class talys:
+    r""" A Talys object develops a TALYS simulation for theoretical
+        cross section simulation.
+        
+        :param int A: the mass number of the target
+        :param int Z: the atomic number of the target
+        :param str projectile: the abbreviation of the projectile particle
+        :param str ejectile: if specified, only outputs results for given
+            ejectiles
+        :param list energy: a list of energies to evaluate at
+        :param list level: a list of energy levels to evaluate at
+    """
     fullnames = {'n': 'neutron', 'g': 'gamma'}
     def __init__(self, A=None, Z=None, projectile='n', ejectile=None,
                  energy=None, level=None):
