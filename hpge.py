@@ -7,9 +7,9 @@ class hpge_file(gamma.gspectra):
         super(hpge_file, self).__init__(x=x, y=x, name=name)
 
 class gammavision_file(hpge_file):
+    ''' a glass for reading gammavision csv files
+    '''
     def __init__(self, filename, name, prefix='../../enrichment/'):
-        ''' a glass for reading gammavision csv files
-        '''
         with open( + filename, 'r') as f:
             for i in range(11):
                 f.readline()
