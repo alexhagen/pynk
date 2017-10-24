@@ -2,6 +2,10 @@ import numpy as np
 import itertools
 
 class event:
+    r""" event is a polimi event container
+    
+        :param str polimi_string: string/line output from Polimi
+    """
     def __init__(self, polimi_string):
         # convert the str to a string object
         arr = polimi_string.split()
@@ -48,6 +52,8 @@ class event:
                                             self.zzz, self.t)
 
 class neutron:
+    r""" neutron follows aneutron through a polimi sim
+    """
     def __init__(self):
         self.events = []
         self.num = len(self.events)
@@ -68,6 +74,8 @@ class cluster:
         self.num = len(self.neutrons)
 
 class polimi:
+    r""" polimi object holds all data processed from a run of mcnpxpolimi
+    """
     def __init__(self):
         self.events = []
         self.neutrons = []
