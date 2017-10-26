@@ -61,6 +61,10 @@ class talys:
                     for e in energy:
                         f2.write('%.15f\n' % (e))
     def run(self, datadir=None):
+        r""" runs the talys analysis if needed
+        
+            :param str datadir: directory that houses any already calculated data
+        """
         if datadir is None:
             datadir = 'archive/'
         self.out_filename = '%s-%d_%s-%s.out' % \
@@ -73,6 +77,11 @@ class talys:
         return self
 
     def proc_output(self, addtl_rxns=[]):
+        r""" goes through the output
+        
+            :param list addtl_rxns: extra reactions to process and return
+            :returns: the talys objects with the results
+        """
         self.E = []
         self.sigma = []
         self.nu = []
@@ -111,6 +120,8 @@ class talys:
         return self
 
     def clean(self):
+        r""" cleans the directory to force recalculation
+        """
         os.system('rm -f %s %s *.tot' % (self.filename, self.energyfilename))
         os.system('mkdir -p archive')
         if 'archive' not in self.out_filename:

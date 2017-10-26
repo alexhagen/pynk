@@ -4,6 +4,8 @@ import math;
 # Helper Functions
 
 def read_endf_line(line):
+    r""" imports one line of an endf file
+    """
 	#slice the first 66 characters
 	line = line[0:65];
 	#split the line into 11 width segments
@@ -54,6 +56,8 @@ def read_endf_line(line):
 	return (np.array(Edata),np.array(xsdata));
 
 def import_endf(filename):
+    r""" imports a full endf file for xs
+    """
 	data = [line.strip() for line in open(filename, 'r')];
 	#find the line ending with 099999
 	(start_end,) = np.where([line.endswith("099999") for line in data]);
