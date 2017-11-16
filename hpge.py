@@ -4,13 +4,15 @@ import numpy as np
 class hpge(gamma.gspectra):
     ''' a class for reading generalized hpge files
     '''
-    def __init__(self, x, y, name):
-        super(hpge, self).__init__(x=x, y=x, name=name)
+    def __init__(self, **kwargs):
+        super(hpge, self).__init__(**kwargs)
 
 class gammavision(hpge):
-    ''' a glass for reading gammavision csv files
+    ''' a class for reading gammavision csv files
     '''
-    def __init__(self, filename, name=None, calib_const=[0., 1., 0.]):
+    def __init__(self, filename, name=None, calib=[0., 1., 0.]):
+        self.calib = calib
+        self.fname = filename
         with open(filename, 'r') as f:
             for i in range(11):
                 f.readline()
@@ -21,8 +23,8 @@ class gammavision(hpge):
             cnt = []
             for i in range(bin1, bin2 + 1):
                 channel = float(i)
-                ch.extend([calib_const[0] + calib_const[1] * channel + \
-                    calib_const[2] * channel * channel])
+                ch.extend([self.calib[0] + self.calib[1] * channel + \
+                    self.calib[2] * channel * channel])
                 cnt.extend([float(f.readline())])
-            super(gammavision, self).__init__(x=1000.0 * np.array(ch), y=cnt,
-                                              name=name)
+        super(gammavision, self).__init__(x=1000.0 * np.array(ch), y=cnt,
+                                          name=name, calib=self.calib)
