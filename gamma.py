@@ -183,7 +183,7 @@ class gspectra(pym.curve):
             #print "k_final is %g" % k_final
             e = 1.0 / (1.0 + k_final * (lambda235/lambda238))
             #print "Enrichment is %g" % (e)
-            return e[0]
+            return e[0][0]
         if plot_minimization:
             plot = S.plot()
             plot.markers_off()
