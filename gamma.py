@@ -19,33 +19,53 @@ class gspectra(pym.curve):
         self.det = name
         super(gspectra, self).__init__(x=x, y=y, name=name)
 
-    def background(self, fname_bkg):
+    def background(self, fname_bkg, calib=None):
         self.fname_bkg = fname_bkg
+        if calib is None:
+            calib = self.calib
         self.bkg = hpge.gammavision(filename=fname_bkg,
                                     name='%s: bkg' % self.det,
-                                    calib=self.calib)
+                                    calib=calib)
         return self
 
+    def find_peak(self, pk_E):
+        dch0 = 1000. * 2. * self.calib[1]
+        dch = dch0
+        while dch < 100.:
+            #print dch
+            try:
+                section = self.copy().crop(x_min=pk_E * 1000. - dch, x_max=pk_E * 1000. + dch, replace='remove')
+                section.fit_gauss((1.0, pk_E * 1000.0, 1.0))
+                A, mu, sigma = section.coeffs
+                #print section.coeffs
+                #print mu, sigma
+                low_E = mu - np.abs(sigma)
+                high_E = mu + np.abs(sigma)
+                if low_E < np.min(section.x) or high_E > np.max(section.x):
+                    raise RuntimeError('Fit a gaussian outside of the peak!')
+                #print low_E, high_E
+                break
+            except RuntimeError:
+                dch = dch + dch0
+        return low_E, high_E, section, A, mu, sigma
+
     def comp_isotopes(self, adjust_calibration=False, plot_peaks=False,
-                      plot_eff=False, plot_minimization=False):
+                      plot_eff=False, plot_minimization=False, try_gauss=True):
         if adjust_calibration:
             # first, take the suggested calibration
             uhpre = hpge.gammavision(self.fname, name=self.det, calib=self.calib)
             bkgpre = hpge.gammavision(self.fname_bkg, name=self.det + ': bkg', calib=self.calib)
             uhmbkgsc = uhpre - bkgpre
             # plot the 185.72 keV U235 peak and find it's central location by fitting a gaussian
-            lpk = uhmbkgsc.copy().crop(x_min=175., x_max=190., replace='remove')
-            lpk.fit_gauss((1.0, 185.72, 1.))
+            _, _, _, _, lpk, _ = self.find_peak(0.18572)
 
             # plot the 742.80 keV U238 peak and find it's central location by fitting a gaussian
-            mpk = uhmbkgsc.copy().crop(x_min=750., x_max=780., replace='remove')
-            mpk.fit_gauss((1.0, 766.50, 1.))
+            _, _, _, _, mpk, _ = self.find_peak(0.76650)
 
             # plot the 1001.40 keV U238 peak and find its central location by fitting a gaussian
-            hpk = uhmbkgsc.copy().crop(x_min=975., x_max=1025., replace='remove')
-            hpk.fit_gauss((1.0, 1001.40, 1.))
+            _, _, _, _, hpk, _ = self.find_peak(1.00140)
             # calculate the new calibration and set these to the calibration
-            newcalib = pym.curve([185.72, 766.50, 1001.40], [lpk.coeffs[1], mpk.coeffs[1], hpk.coeffs[1]])
+            newcalib = pym.curve([185.72, 766.50, 1001.40], [lpk, mpk, hpk])
             newcalib.fit_square()
             self.calib = self.calib * newcalib.coeffs
         # Now reimport with the new calibrations
@@ -59,8 +79,8 @@ class gspectra(pym.curve):
             low_238 = [60., 255., 740., 765., 998.]
             high_238 = [67.5, 260.5, 750., 774., 1011.]
         elif date == '11_02_17':
-            low_238 = [59., 251., 732., 755., 991.]
-            high_238 = [64.5, 256., 740., 764., 996.]
+            low_238 = [59., 736., 761., 995.]
+            high_238 = [65., 747.5, 771., 1007.]
         elif date == '11_03_17':
             low_238 = [62., 257.5, 745., 767.5, 1002.]
             high_238 = [65., 262.5, 752.5, 780., 1015.]
@@ -75,21 +95,36 @@ class gspectra(pym.curve):
             high_238 = [65., 259., 743., 766.5, 1002.]
         gamma_238 = [0.0425, 0.000770, 0.000870, 0.00343, 0.00889]
         peak238_nos = []
-        for pk_E, low_E, high_E in zip(E_238, low_238, high_238):
-            section = uhharry.copy().crop(x_min=pk_E * 1000. - 10., x_max=pk_E * 1000. + 10., replace='remove')
-            peak = uhharry.copy().crop(x_min=low_E, x_max=high_E, replace='remove')
-            peak.data = 'binned'
-            bkg_cnts = (peak.x[-1] - peak.x[0]) * (peak.y[-1] + peak.y[0]) / 2.0
-            deltax = peak.x[1] - peak.x[0]
-            peak238_nos.extend([np.sum(peak.y * deltax) - bkg_cnts])
-            if plot_peaks:
-                plot = section.plot(linecolor=puc.pu_colors['blue'])
-                plot.fill_between(peak.x, np.zeros_like(peak.x), peak.y, fc=puc.pu_colors['lightlightgray'])
-                plot.semi_log_y()
-                plot.markers_off()
-                plot.export('../img/pk_%f' % pk_E, ratio='golden', sizes=['2'], force=True)
-                plot.show('', label='')
-                plot.close()
+        if try_gauss:
+            for pk_E in E_238:
+                low_E, high_E, section, A, mu, sigma = self.find_peak(pk_E)
+                peak = self.copy().crop(x_min=low_E, x_max=high_E, replace='remove')
+                peak238_nos.extend([A/(sigma**2.)])
+                if plot_peaks:
+                    plot = section.plot(linecolor=puc.pu_colors['blue'])
+                    plot = section.plot_fit(linecolor=puc.pu_colors['newgold'], addto=plot)
+                    plot.fill_between(peak.x, np.zeros_like(peak.x), peak.y, fc=puc.pu_colors['lightlightgray'])
+                    plot.semi_log_y()
+                    plot.markers_off()
+                    plot.export('../img/pk_%f' % pk_E, ratio='golden', sizes=['2'], force=True)
+                    plot.show('', label='')
+                    plot.close()
+        else:
+            for pk_E, low_E, high_E in zip(E_238, low_238, high_238):
+                section = uhharry.copy().crop(x_min=pk_E * 1000. - 10., x_max=pk_E * 1000. + 10., replace='remove')
+                peak = uhharry.copy().crop(x_min=low_E, x_max=high_E, replace='remove')
+                peak.data = 'binned'
+                bkg_cnts = (peak.x[-1] - peak.x[0]) * (peak.y[-1] + peak.y[0]) / 2.0
+                deltax = peak.x[1] - peak.x[0]
+                peak238_nos.extend([np.sum(peak.y * deltax) - bkg_cnts])
+                if plot_peaks:
+                    plot = section.plot(linecolor=puc.pu_colors['blue'])
+                    plot.fill_between(peak.x, np.zeros_like(peak.x), peak.y, fc=puc.pu_colors['lightlightgray'])
+                    plot.semi_log_y()
+                    plot.markers_off()
+                    plot.export('../img/pk_%f' % pk_E, ratio='golden', sizes=['2'], force=True)
+                    plot.show('', label='')
+                    plot.close()
         E_235 = [0.14378, 0.16336, 0.18572, 0.20213, 0.20531]
         low_235 = [142., 161.5, 183.5, 200., 203.5]
         high_235 = [145.5, 165., 188., 203.5, 207.]
@@ -99,8 +134,8 @@ class gspectra(pym.curve):
             low_235 = [140., 160., 180.]
             high_235 = [146., 165.5, 190.]
         elif date == '11_02_17':
-            low_235 = [138., 158., 180.]
-            high_235 = [145., 163., 187.]
+            low_235 = [140., 160., 182.]
+            high_235 = [145.5, 165., 189.]
         elif date == '11_03_17':
             low_235 = [141., 162., 184.]
             high_235 = [147.5, 167.5, 190.]
@@ -115,21 +150,36 @@ class gspectra(pym.curve):
             high_235 = [145.5, 165., 188.]
         gamma_235 = [0.1067, 0.0506, 0.576]
         peak235_nos = []
-        for pk_E, low_E, high_E in zip(E_235, low_235, high_235):
-            section = uhharry.copy().crop(x_min=pk_E * 1000. - 10., x_max=pk_E * 1000. + 10., replace='remove')
-            peak = uhharry.copy().crop(x_min=low_E, x_max=high_E, replace='remove')
-            peak.data = 'binned'
-            bkg_cnts = (peak.x[-1] - peak.x[0]) * (peak.y[-1] + peak.y[0]) / 2.0
-            deltax = peak.x[1] - peak.x[0]
-            peak235_nos.extend([np.sum(peak.y * deltax) - bkg_cnts])
-            if plot_peaks:
-                plot = section.plot(linecolor=puc.pu_colors['red'])
-                plot.fill_between(peak.x, np.zeros_like(peak.x), peak.y, fc=puc.pu_colors['lightlightgray'])
-                plot.markers_off()
-                plot.semi_log_y()
-                plot.export('../img/pk_%f' % pk_E, force=True)
-                plot.show('', label='')
-                plot.close()
+        if try_gauss:
+            for pk_E in E_235:
+                low_E, high_E, section, A, mu, sigma = self.find_peak(pk_E)
+                peak = self.copy().crop(x_min=low_E, x_max=high_E, replace='remove')
+                peak235_nos.extend([A/(sigma**2.)])
+                if plot_peaks:
+                    plot = section.plot(linecolor=puc.pu_colors['red'])
+                    plot = section.plot_fit(linecolor=puc.pu_colors['newgold'], addto=plot)
+                    plot.fill_between(peak.x, np.zeros_like(peak.x), peak.y, fc=puc.pu_colors['lightlightgray'])
+                    plot.markers_off()
+                    plot.semi_log_y()
+                    plot.export('../img/pk_%f' % pk_E, force=True)
+                    plot.show('', label='')
+                    plot.close()
+        else:
+            for pk_E, low_E, high_E in zip(E_235, low_235, high_235):
+                section = uhharry.copy().crop(x_min=pk_E * 1000. - 10., x_max=pk_E * 1000. + 10., replace='remove')
+                peak = uhharry.copy().crop(x_min=low_E, x_max=high_E, replace='remove')
+                peak.data = 'binned'
+                bkg_cnts = (peak.x[-1] - peak.x[0]) * (peak.y[-1] + peak.y[0]) / 2.0
+                deltax = peak.x[1] - peak.x[0]
+                peak235_nos.extend([np.sum(peak.y * deltax) - bkg_cnts])
+                if plot_peaks:
+                    plot = section.plot(linecolor=puc.pu_colors['red'])
+                    plot.fill_between(peak.x, np.zeros_like(peak.x), peak.y, fc=puc.pu_colors['lightlightgray'])
+                    plot.markers_off()
+                    plot.semi_log_y()
+                    plot.export('../img/pk_%f' % pk_E, force=True)
+                    plot.show('', label='')
+                    plot.close()
         Eas = []
         epsas = []
         for E_peak, R_peak, g235 in zip(E_235, peak235_nos, gamma_235):
