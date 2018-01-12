@@ -11,15 +11,15 @@ class hpge(gamma.gspectra):
 class gammavision(hpge):
     ''' a class for reading gammavision csv files
     '''
-    def __init__(self, filename, name=None):
+    def __init__(self, filename, name=None, calib=None):
         self.fname = filename
-        E, cnt, calib = self.load_spe(filename)
+        E, cnt, calib = self.load_spe(filename, calib=calib)
         self.calib = calib
         spectrum = pym.curve(E, cnt, filename.replace('../', ''))
-        super(gammavision, self).__init__(x=1000.0 * np.array(E), y=np.array(cnt),
+        super(gammavision, self).__init__(x=np.array(E), y=np.array(cnt),
                                           name=name, calib=self.calib)
 
-    def load_spe(self, fname):
+    def load_spe(self, fname, calib=None):
         with open(fname, 'r') as f:
             for i in range(11):
                 f.readline()
@@ -40,8 +40,9 @@ class gammavision(hpge):
                 line = f.readline()
             cal_deg = int(f.readline())
             cal_line = f.readline().split()
-            calib = [float(x) for x in cal_line[:-1]]
-            calib = [1.0E-3 * x for x in calib]
+            if calib is None:
+                calib = [float(x) for x in cal_line[:-1]]
+                calib = [1.0E-3 * x for x in calib]
         # convert the data given the calibration in the file
         if all(v == 0.0 for v in calib):
             print "no calibration"
@@ -50,4 +51,6 @@ class gammavision(hpge):
             E = [calib[0] + calib[1] * _ch + calib[2] * _ch * _ch for _ch in ch]
         elif len(calib) == 2:
             E = [calib[0] + calib[1] * _ch for _ch in ch]
+        elif len(calib) == 4:
+            E = [calib[0] + calib[1] * _ch + calib[2] * _ch * _ch + calib[3] * _ch * _ch * _ch for _ch in ch]
         return E, cnt, calib
