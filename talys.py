@@ -1,5 +1,5 @@
 import subprocess
-import notify2 as n
+#import notify2 as n
 import re
 import os
 from os.path import expanduser
@@ -7,7 +7,7 @@ from os.path import expanduser
 class talys:
     r""" A Talys object develops a TALYS simulation for theoretical
         cross section simulation.
-        
+
         :param int A: the mass number of the target
         :param int Z: the atomic number of the target
         :param str projectile: the abbreviation of the projectile particle
@@ -62,7 +62,7 @@ class talys:
                         f2.write('%.15f\n' % (e))
     def run(self, datadir=None):
         r""" runs the talys analysis if needed
-        
+
             :param str datadir: directory that houses any already calculated data
         """
         if datadir is None:
@@ -78,7 +78,7 @@ class talys:
 
     def proc_output(self, addtl_rxns=[]):
         r""" goes through the output
-        
+
             :param list addtl_rxns: extra reactions to process and return
             :returns: the talys objects with the results
         """
